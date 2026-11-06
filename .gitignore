@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.sanitizer_venv/
+
+# IDE
+.idea/
+.vscode/
+
+# Модель (3+ ГБ, скачивается отдельно)
+model/*.gguf
+
+# Тестовые данные и результаты (содержат конфиденциальные документы)
+src/
+sanitized_output/
+
+# PyInstaller
+build/
+dist/

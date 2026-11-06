@@ -1,0 +1,148 @@
+# =============================================================================
+# prompts.yaml — LLM Sanitization Prompts Configuration
+# =============================================================================
+# Each entry defines one analysis category. The script dynamically loads all
+# categories from this file, making it easy to add/remove/modify without
+# touching the Python code.
+#
+# Fields:
+#   name          — unique identifier (used in --categories flag)
+#   description   — human-readable label for console output
+#   system_prompt — full prompt text sent to the LLM as system message
+#   response_schema — expected JSON keys returned by the model
+#   parse_rule    — how to interpret the LLM response:
+#                   {"check_key": "X", "true_value": true} → flag if X == true
+#                   {"check_key": "sensitive", "true_value": true}
+#   confidence_mapping — optional rules to derive confidence from response fields:
+#                   [{"if_field": "ip_risk", "if_value": "high", "confidence": 0.9}, ...]
+#   category_output — the category label written to results (defaults to name)
+#   replacement_key — JSON key containing the suggested replacement code
+# =============================================================================
+
+categories:
+
+  # ─── Secret/Key Detection ────────────────────────────────────────────────
+  - name: scan
+    description: "Hardcoded secrets, API keys, passwords, tokens"
+    system_prompt: |
+      You are a code security auditor. Analyze this code chunk for ANY hardcoded secrets,
+      encryption keys, API keys, passwords, tokens, connection strings, certificates,
+      private keys, Base64-encoded secrets, or any sensitive configuration values.
+
+      IMPORTANT RULES:
+      1. If you see a variable assignment where a secret-looking value is hardcoded
+         (string literals, byte arrays, Base64 strings, hex keys) — flag it as sensitive.
+      2. Do NOT ignore it just because it might be 'test data' — flag everything that looks real.
+      3. Return JSON only:
+         {"sensitive": true, "confidence": 0.9, "reason": "found hardcoded encryption key",
+          "key_type": "Base64 encryption key", "replacement": "// TODO: load key from secure storage\n" + VARIABLE_NAME + " = Environment.GetEnvironmentVariable(\"SECRET_KEY\");"}
+      4. If truly safe (no strings, no numbers, no assignments), return:
+         {"sensitive": false, "confidence": 1.0, "reason": "no secrets found"}
+      NEVER return anything else. JSON ONLY.
+    response_schema:
+      sensitive: boolean
+      confidence: number
+      reason: string
+      key_type: string (optional)
+      replacement: string (optional)
+    parse_rule:
+      check_key: sensitive
+      true_value: true
+    category_output: encryption
+    replacement_key: replacement
+
+  # ─── Hardware Protocol Detection ─────────────────────────────────────────
+  - name: protocol
+    description: "Device communication protocols, packet structures"
+    system_prompt: |
+      You are analyzing code for hardware/device communication protocols. Look for:
+      - Command structures sent to devices (byte arrays, hex sequences, register writes)
+      - Response structures received from devices (parsing logic, status codes, data fields)
+      - Packet/frame structures (headers, payloads, checksums, CRC, framing bytes)
+      - Communication setup (baud rate, parity, address, device IDs, endpoints)
+      - State machines or protocol handshakes with hardware
+
+      Return JSON:
+      {"has_protocol": true, "protocol_type": "SPI/I2C/UART/Custom/TCP/etc",
+       "command_structures": ["list of command bytes or command descriptions"],
+       "response_structures": ["list of response field descriptions"],
+       "packet_format": "description of packet/frame structure if present",
+       "device_addresses": ["list of device addresses/IDs found"],
+       "timing_critical": true/false,
+       "ip_risk": "high/medium/low",
+       "abstraction_stub": "safe stub code replacing protocol with mock"}
+
+      If no protocol found: {"has_protocol": false, "ip_risk": "none"}
+      JSON ONLY.
+    response_schema:
+      has_protocol: boolean
+      protocol_type: string (optional)
+      command_structures: array (optional)
+      response_structures: array (optional)
+      packet_format: string (optional)
+      device_addresses: array (optional)
+      timing_critical: boolean (optional)
+      ip_risk: string (optional)
+      abstraction_stub: string (optional)
+    parse_rule:
+      check_key: has_protocol
+      true_value: true
+    confidence_mapping:
+      - if_field: ip_risk
+        if_value: high
+        confidence: 0.9
+      - if_field: ip_risk
+        if_value: medium
+        confidence: 0.7
+      - if_field: ip_risk
+        if_value: low
+        confidence: 0.5
+    category_output: protocol
+    replacement_key: abstraction_stub
+
+  # ─── Proprietary Algorithm Detection ─────────────────────────────────────
+  - name: algorithm
+    description: "Proprietary algorithms, signal processing, calibration"
+    system_prompt: |
+      You are analyzing code for proprietary algorithms used in hardware interaction. Look for:
+      - Signal processing algorithms (filters, FFT, DSP, calibration)
+      - Data transformation algorithms (encoding, compression, checksums, CRC)
+      - Control algorithms (PID, state machines, optimization, calibration curves)
+      - Proprietary mathematical formulas or hardware-specific computations
+      - Device calibration routines or compensation algorithms
+
+      Return JSON:
+      {"has_algorithm": true, "algorithm_family": "signal_processing/CRC/PID/etc",
+       "core_logic_description": "brief description of what the algorithm does",
+       "ip_risk_level": "high/medium/low",
+       "input_parameters": ["list of inputs the algorithm takes"],
+       "output_description": "what the algorithm produces",
+       "dependencies": ["external libs or modules used"],
+       "safe_stub_code": "simple stub replacing the algorithm body"}
+
+      If no algorithm found: {"has_algorithm": false, "ip_risk_level": "none"}
+      JSON ONLY.
+    response_schema:
+      has_algorithm: boolean
+      algorithm_family: string (optional)
+      core_logic_description: string (optional)
+      ip_risk_level: string (optional)
+      input_parameters: array (optional)
+      output_description: string (optional)
+      dependencies: array (optional)
+      safe_stub_code: string (optional)
+    parse_rule:
+      check_key: has_algorithm
+      true_value: true
+    confidence_mapping:
+      - if_field: ip_risk_level
+        if_value: high
+        confidence: 0.9
+      - if_field: ip_risk_level
+        if_value: medium
+        confidence: 0.7
+      - if_field: ip_risk_level
+        if_value: low
+        confidence: 0.5
+    category_output: algorithm
+    replacement_key: safe_stub_code

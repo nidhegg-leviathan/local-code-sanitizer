@@ -1,0 +1,15 @@
+llama-cpp-python
+gitpython
+rich~=15.0.0
+pydantic
+pyyaml~=6.0.3
+
+customtkinter~=6.0.0
+style~=1.1.0
+pip~=26.1.2
+attrs~=26.1.0
+distro~=1.9.0
+wheel~=0.47.0
+protobuf~=7.34.1
+filelock~=3.29.4
+redis~=5.0.1
