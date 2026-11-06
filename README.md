@@ -7,7 +7,44 @@
 ## Требования
 
 - Python 3.11+
-- GGUF модель (например, `gemma-4-E2B-it-Q4_K_M.gguf`)
+- GGUF модель (например, `gemma-4-E2B-it-Q4_K_M.gguf`, ~3,4 ГБ — [как скачать](#скачивание-модели))
+
+---
+
+## Скачивание модели
+
+В репозитории весов нет: файл на 3,4 ГБ лежит отдельно на Hugging Face. Скачайте его в папку `model/`.
+
+**Страница модели:** [dahus/gemma-4-e2b-it-Q4_K_M-GGUF](https://huggingface.co/dahus/gemma-4-e2b-it-Q4_K_M-GGUF)
+
+**Прямая ссылка на файл:** [gemma-4-e2b-Q4_K_M.gguf (3,43 ГБ)](https://huggingface.co/dahus/gemma-4-e2b-it-Q4_K_M-GGUF/resolve/main/gemma-4-e2b-Q4_K_M.gguf?download=true)
+
+### Вариант 1: браузер
+
+Открыть страницу модели → вкладка **Files and versions** → `gemma-4-e2b-Q4_K_M.gguf` → **Download**, затем положить файл в `model\gemma-4-E2B-it-Q4_K_M.gguf` (имя из примеров ниже).
+
+### Вариант 2: PowerShell
+
+```powershell
+New-Item -ItemType Directory -Force model | Out-Null
+Invoke-WebRequest `
+  -Uri "https://huggingface.co/dahus/gemma-4-e2b-it-Q4_K_M-GGUF/resolve/main/gemma-4-e2b-Q4_K_M.gguf?download=true" `
+  -OutFile "model\gemma-4-E2B-it-Q4_K_M.gguf"
+```
+
+### Вариант 3: huggingface-cli (с докачкой при обрыве)
+
+```powershell
+pip install -U "huggingface_hub[cli]"
+hf download dahus/gemma-4-e2b-it-Q4_K_M-GGUF gemma-4-e2b-Q4_K_M.gguf --local-dir model
+Rename-Item model\gemma-4-e2b-Q4_K_M.gguf gemma-4-E2B-it-Q4_K_M.gguf
+```
+
+### Другие квантизации
+
+Если 3,4 ГБ многовато — в [model/README.md](model/README.md) есть таблица Q2_K … Q8 с размерами, скоростью и качеством, и ссылки на все варианты. Меньшие квантизации слабее держат формат ответа, поэтому для замены кода на заглушки лучше Q4_K_M и выше.
+
+> Веса распространяются по [Gemma Terms of Use](https://ai.google.dev/gemma/terms), а не по лицензии MIT, под которой выпущен код этого репозитория.
 
 ---
 
